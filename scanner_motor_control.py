@@ -6,13 +6,13 @@ log = logging.getLogger(__name__)
 
 class ScannerControl:
 
+    def __init__(self):
+        self.motors = {}
+
     def connect(self, ports: list, baudrate=9600) -> None:
-        port0, port1, port2 = ports
-        self.motors = {
-            0: Motor(port0, baudrate),
-            1: Motor(port1, baudrate),
-            2: Motor(port2, baudrate),
-        }
+        for i, port in enumerate(ports):
+            self.motors[i] = Motor(port, i, baudrate)
+        
         with ThreadPool(processes=len(self.motors)) as pool:
             pool.map(lambda motor: motor.connect(), self.motors.values())
 
@@ -31,7 +31,21 @@ class ScannerControl:
     def activate_stall_guard(self):
         with ThreadPool(processes=len(self.motors)) as pool:
             pool.map(lambda motor: motor.activate_stall_guard(), self.motors.values())
-    
-    
 
+    def deactivate_stall_guard(self):
+        with ThreadPool(processes=len(self.motors)) as pool:
+            pool.map(lambda motor: motor.deactivate_stall_guard(), self.motors.values())
 
+    def move_motors_to_position(self, positions: list):
+        with ThreadPool(processes=len(self.motors)) as pool:
+            pool.starmap(lambda motor, position: motor.move_to_position(position), zip(self.motors.values(), positions))
+
+    def configure_motors(self, config: dict):
+        for motor in self.motors.values():
+            motor.configure(config)
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.disconnect()
