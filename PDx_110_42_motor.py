@@ -10,39 +10,42 @@ class Motor:
         self.motor_number = motor_number
         self.baudrate = baudrate
         self.port = port
-        self.ser = None
+        self._serial = None
         self.STALL_THRESHOLD = 3
         self.DECAY_THRESHOLD = 2048
 
     def connect(self):
-        if self.ser is not None and self.ser.isOpen():
-            log.info(f"Motor {self.motor_number} is already connected to {self.ser.port}")
+        if self._serial is not None and self._serial.isOpen():
+            log.info(f"Motor {self.motor_number} is already connected to {self._serial.port}")
             return
 
-        self.ser = serial.Serial(self.port, self.baudrate, timeout=0.25)
+        self._serial = serial.Serial(self.port, self.baudrate, timeout=0.25)
         self.test_connection()
 
     def disconnect(self):
-        if self.ser is not None and self.ser.isOpen():
-            log.info(f"Closing connection to motor {self.motor_number} on port {self.ser.port}")
-            self.ser.close()
+        if self._serial is not None and self._serial.isOpen():
+            log.info(f"Closing connection to motor {self.motor_number} on port {self._serial.port}")
+            self._serial.close()
 
     def test_connection(self):
+        """
+        Test the connection to the motor by sending a stop command and checking for a reply.
+        """
         try:
-            self.ser.write(TMCL.stop_motor_movement(0))
-            self.ser.read(9)
+            self._serial.write(TMCL.stop_motor_movement(0))
+            self._serial.read(9)
             log.info(
-                f"Successfully connected to motor {self.motor_number} on port {self.ser.port}"
+                f"Successfully connected to motor {self.motor_number} on port {self._serial.port}"
             )
         except serial.SerialException as err:
             log.error(
-                f"Failed to connect to motor {self.motor_number} on port {self.ser.port}: {err}"
+                f"Failed to connect to motor {self.motor_number} on port {self._serial.port}: {err}"
             )
             raise
 
     def _write_to_serial(self, byte_cmd: bytearray):
-        self.ser.write(byte_cmd)
-        reply = self.ser.read(9)
+        self._serial.write(byte_cmd)
+        reply = self._serial.read(9)
 
     def _set_and_store(self, parameter: AxisParameters, value: int):
         self._write_to_serial(TMCL.set_axis_parameter(parameter, value))
@@ -91,6 +94,12 @@ class Motor:
                 raise
 
     def move_to_step(self, step_position):
+        """
+        Move the motor to the specified step position.
+
+        Args:
+            step_position (int): The target step position for the motor.
+        """
         self._write_to_serial(TMCL.move_to_position(0, step_position))
         self._check_if_finished_moving()
 
