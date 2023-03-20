@@ -3,7 +3,6 @@ import logging
 
 log = logging.getLogger(__name__)
 
-
 class TMCLCommands(Enum):
     ROTATE_RIGHT = 1
     ROTATE_LEFT = 2
