@@ -96,7 +96,7 @@ class ScannerControl:
                 zip(self.motors.values(), distances),
             )
 
-    def check_position_in_mm_valid(self, positions: list, relative: bool = False) -> List[bool]:
+    def check_position_in_mm_allowed(self, positions: list, relative: bool = False) -> List[bool]:
         valid = []
         for motor, position in zip(self.motors.values(), positions):
             bl, _ = motor.check_if_position_in_mm_allowed(position)
