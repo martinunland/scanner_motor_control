@@ -19,6 +19,7 @@ class Motor:
         self.STALL_THRESHOLD = 3
         self.DECAY_THRESHOLD = 2048
         self.MAX_FREEZE_TIME = 10
+
     def connect(self) -> None:
         if self._serial is not None and self._serial.isOpen():
             log.info(
@@ -109,7 +110,7 @@ class Motor:
         self._set_and_store(TMCLPars.STALL_DETECTION_THRESHOLD, 0)
 
     def _check_if_finished_moving(self) -> None:
-        
+
         position_old = self._get_parameter(TMCLPars.ACTUAL_POSITION_MICROSTEPS)
         last_move_time = time.time()
         while self._get_parameter(TMCLPars.TARGET_POSITION_REACHED) == 0:

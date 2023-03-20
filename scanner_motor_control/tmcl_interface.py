@@ -3,6 +3,7 @@ import logging
 
 log = logging.getLogger(__name__)
 
+
 class TMCLCommands(Enum):
     ROTATE_RIGHT = 1
     ROTATE_LEFT = 2
@@ -65,6 +66,7 @@ class StatusCodes(Enum):
     Each status code corresponds to a specific condition or error encountered
     during the execution of a TMCL command.
     """
+
     SUCCESS = 100
     COMMAND_LOADED = 101
     WRONG_CHECKSUM = 1
@@ -115,9 +117,11 @@ class TMCL:
         Returns:
             bytearray: The encoded message.
         """
-        binary_msg = bytearray([target_address, cmd.value, parameter.value, motor_number])
+        binary_msg = bytearray(
+            [target_address, cmd.value, parameter.value, motor_number]
+        )
         binary_msg += value.to_bytes(4, byteorder="big", signed=True)
-        checksum = (sum(binary_msg)%256).to_bytes(1, byteorder="big")
+        checksum = (sum(binary_msg) % 256).to_bytes(1, byteorder="big")
         binary_msg += checksum
         return binary_msg
 
@@ -127,7 +131,6 @@ class TMCL:
         The motor will be instructed to rotate with a specified velocity in right direction (increasing the position counter).
 
         Args:
-            motor_number (int): The motor number.
             value (int): The velocity value.
 
         Returns:
@@ -141,7 +144,6 @@ class TMCL:
         The motor will be instructed to rotate with a specified velocity (opposite direction compared to ROR, decreasing the position counter).
 
         Args:
-            motor_number (int): The motor number.
             value (int): The velocity value.
 
         Returns:
@@ -153,9 +155,6 @@ class TMCL:
     def stop_motor_movement(self) -> bytearray:
         """
         The motor will be instructed to stop with deceleration ramp (soft stop).
-
-        Args:
-            motor_number (int): The motor number.
 
         Returns:
             bytearray: The encoded message.
@@ -173,7 +172,6 @@ class TMCL:
 
         Args:
             parameter (MotorMovement): The parameter to use. Use MotorMovement.ABSOLUTE for absolute position and MotorMovement.RELATIVE for relative position.
-            motor_number (int): The motor number.
             value (int): The position to move to.
 
         Returns:
@@ -184,15 +182,14 @@ class TMCL:
         )
 
     @classmethod
-    def set_axis_parameter(self, parameter: int, value: int) -> bytearray:
+    def set_axis_parameter(self, parameter: TMCLPars, value: int) -> bytearray:
         """
         Most of the motion control parameters of the module can be specified. The settings will
         be stored in SRAM and therefore are volatile. That is, information will be lost after power off. Please use
         command store_axis_parameter in order to store any setting permanently.
 
         Args:
-            parameter (int): The parameter to set. Refer to AxisParameters.
-            motor_number (int): The motor number.
+            parameter (TMCLPars): The parameter to set. Refer to TMCLPars enum
             value (int): The value to set the parameter to.
 
         Returns:
@@ -203,13 +200,12 @@ class TMCL:
         )
 
     @classmethod
-    def get_axis_parameter(self, parameter: int) -> bytearray:
+    def get_axis_parameter(self, parameter: TMCLPars) -> bytearray:
         """
         Gets the specified parameter for the specified motor.
 
         Args:
-            parameter (int): The parameter to get. Refer to AxisParameters
-            motor_number (int): The motor number.
+            parameter (TMCLPars): The parameter to get. Refer to TMCLPars enum
 
         Returns:
             bytearray: The encoded message.
@@ -217,13 +213,12 @@ class TMCL:
         return self._encode(TMCLCommands.GET_AXIS_PARAMETER, parameter=parameter)
 
     @classmethod
-    def store_axis_parameter(self, parameter: int) -> bytearray:
+    def store_axis_parameter(self, parameter: TMCLPars) -> bytearray:
         """
         Stores the specified parameter for the specified motor axis in non-volatile memory.
 
         Args:
-            parameter (int): The parameter to store. Refer to AxisParameters.
-            motor_number (int): The motor number.
+            parameter (TMCLPars): The parameter to store. Refer to TMCLPars enum
 
         Returns:
             bytearray: The encoded message.
@@ -231,13 +226,12 @@ class TMCL:
         return self._encode(TMCLCommands.STORE_AXIS_PARAMETER, parameter=parameter)
 
     @classmethod
-    def restore_axis_parameter(self, parameter: int) -> bytearray:
+    def restore_axis_parameter(self, parameter: TMCLPars) -> bytearray:
         """
         Restores the specified parameter for the specified motor axis from non-volatile memory.
 
         Args:
-            parameter (int): The parameter to restore. Refer to AxisParameters.
-            motor_number (int): The motor number.
+            parameter (TMCLPars): The parameter to restore. Refer to TMCLPars enum
 
         Returns:
             bytearray: The encoded message.
@@ -245,20 +239,20 @@ class TMCL:
         return self._encode(TMCLCommands.RESTORE_AXIS_PARAMETER, parameter=parameter)
 
     @classmethod
-    def decode_reply(self, reply: bytes, spam: bool = False):
+    def decode_reply(self, reply: bytes, spam: bool = False) -> int:
         """
         Decodes the reply from the motor and puts it into a list where each element represents one byte.
 
         Args:
             reply (bytes): The raw reply from the motor.
-            debug (bool, optional): Enables debugging information. Defaults to False.
+            spam (bool, optional): Enables debugging information. Defaults to False. Warning, you will get a lot of info!
 
         Returns:
-            tuple: A tuple containing the decoded reply as a list and the integer value of the hex value.
+            int: decoded value field.
         """
         dec_reply = list(reply)
 
-        hex_value = ''.join([f'{byte:02x}' for byte in dec_reply[4:8]])
+        hex_value = "".join([f"{byte:02x}" for byte in dec_reply[4:8]])
 
         int_value = int(hex_value, 16)
         checksum = dec_reply[8]
@@ -267,10 +261,12 @@ class TMCL:
         if 1 <= status.value <= 6:
             log.warning(f"Error status received: {status}")
         if spam:
-            log.debug('\n----- Reply ----------------------------------------\n'
-                    f'Value, hex:\t{int_value}, {hex_value}\n'
-                    f'Cecksum, hex:\t{checksum}, {hex(checksum)}\n'
-                    f'Reply:\t\t{dec_reply}\n'
-                    f'Status:\t\t{status}\n')
+            log.debug(
+                "\n----- Reply ----------------------------------------\n"
+                f"Value, hex:\t{int_value}, {hex_value}\n"
+                f"Cecksum, hex:\t{checksum}, {hex(checksum)}\n"
+                f"Reply:\t\t{dec_reply}\n"
+                f"Status:\t\t{status}\n"
+            )
 
         return int_value

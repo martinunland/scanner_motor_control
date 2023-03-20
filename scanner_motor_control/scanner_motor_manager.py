@@ -24,11 +24,13 @@ class ScannerControl:
         with ThreadPool(processes=len(self.motors)) as pool:
             pool.map(lambda motor: motor.connect(), self.motors.values())
 
-    def disconnect(self):
+    def disconnect(self) -> None:
         with ThreadPool(processes=len(self.motors)) as pool:
             pool.map(lambda motor: motor.disconnect(), self.motors.values())
 
-    def configure_motors(self, max_speed: int = 5000, max_acceleration: int = 1500):
+    def configure_motors(
+        self, max_speed: int = 5000, max_acceleration: int = 1500
+    ) -> None:
         """
         Set the maximum speed and acceleration for all motors.
 
@@ -44,17 +46,17 @@ class ScannerControl:
                 self.motors.values(),
             )
 
-    def find_reference_position(self):
+    def find_reference_position(self) -> None:
         with ThreadPool(processes=len(self.motors)) as pool:
             pool.map(
                 lambda motor: motor.search_reference_position(), self.motors.values()
             )
 
-    def activate_stall_guard(self):
+    def activate_stall_guard(self) -> None:
         with ThreadPool(processes=len(self.motors)) as pool:
             pool.map(lambda motor: motor.activate_stall_guard(), self.motors.values())
 
-    def deactivate_stall_guard(self):
+    def deactivate_stall_guard(self) -> None:
         with ThreadPool(processes=len(self.motors)) as pool:
             pool.map(lambda motor: motor.deactivate_stall_guard(), self.motors.values())
 
