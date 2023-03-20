@@ -1,1 +1,1 @@
-from .scanner_motor_manager import ScannerControl
+from scanner_motor_control.scanner_motor_manager import ScannerControl
