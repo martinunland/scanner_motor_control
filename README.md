@@ -67,3 +67,8 @@ with ScannerControl() as scanner:
     print(scanner.get_current_position())
 ```
 In this case, the motors are automatically disconnected if an exception occurs.
+
+If you request a position outside the available volume, an exception will be risen. You can check the position as follows:
+```python
+valid = scanner.check_position_valid([-15, -15, -15], relative = True)
+```
