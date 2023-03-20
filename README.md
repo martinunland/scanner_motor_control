@@ -14,7 +14,7 @@ pip install git+https://github.com/martinunland/scanner_motor_control.git
 ```
 Or download the wheel in repositories and pip:
 ```bash
-pip install scan_motion_control-0.1.0-py3-none-any.whl
+pip install scanner_motor_control-0.2.0-py3-none-any.whl
 ```
 
 ## Dependencies
