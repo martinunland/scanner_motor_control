@@ -1,4 +1,8 @@
 from enum import Enum
+import logging
+
+log = logging.getLogger(__name__)
+
 
 class TMCLCommands(Enum):
     ROTATE_RIGHT = 1
@@ -10,7 +14,17 @@ class TMCLCommands(Enum):
     STORE_AXIS_PARAMETER = 7
     RESTORE_AXIS_PARAMETER = 8
 
-class AxisParameters(Enum):
+
+class DefaultParameter(Enum):
+    default = 0
+
+
+class MotorMovement(Enum):
+    ABSOLUTE = 0
+    RELATIVE = 1
+
+
+class TMCLPars(Enum):
     TARGET_POSITION_MICROSTEPS = 0
     ACTUAL_POSITION_MICROSTEPS = 1
     TARGET_SPEED = 2
@@ -44,9 +58,51 @@ class AxisParameters(Enum):
     FULLSTEP_THRESHOLD = 211
     POWER_DOWN_DELAY_10ms = 214
 
+
+class StatusCodes(Enum):
+    """
+    Enum representing the status codes returned by the TMCL firmware.
+
+    Each status code corresponds to a specific condition or error encountered
+    during the execution of a TMCL command.
+    """
+    SUCCESS = 100
+    COMMAND_LOADED = 101
+    WRONG_CHECKSUM = 1
+    INVALID_COMMAND = 2
+    WRONG_TYPE = 3
+    INVALID_VALUE = 4
+    EEPROM_LOCKED = 5
+    COMMAND_NOT_AVAILABLE = 6
+
+    @property
+    def description(self):
+        descriptions = {
+            self.SUCCESS: "Successfully executed, no error",
+            self.COMMAND_LOADED: "Command loaded into TMCL program EEPROM",
+            self.WRONG_CHECKSUM: "Wrong Checksum",
+            self.INVALID_COMMAND: "Invalid command",
+            self.WRONG_TYPE: "Wrong type",
+            self.INVALID_VALUE: "Invalid value",
+            self.EEPROM_LOCKED: "Configuration EEPROM locked",
+            self.COMMAND_NOT_AVAILABLE: "Command not available",
+        }
+        return descriptions[self]
+
+    def __str__(self):
+        return self.description
+
+
 class TMCL:
     @classmethod
-    def _encode(self, cmd: TMCLCommands, target_address: int = 1, parameter: int = 0, motor_number: int = 0, value: int = 0) -> bytearray:
+    def _encode(
+        self,
+        cmd: TMCLCommands,
+        target_address: int = 1,
+        parameter: DefaultParameter = DefaultParameter.default,
+        motor_number: int = 0,
+        value: int = 0,
+    ) -> bytearray:
         """
         Encodes a message according to the TMCL firmware manual.
 
@@ -60,16 +116,17 @@ class TMCL:
         Returns:
             bytearray: The encoded message.
         """
-        binary_msg = bytearray([target_address, cmd.value, parameter, motor_number])
-        binary_msg += value.to_bytes(4, byteorder="big")
-        checksum = sum(binary_msg).to_bytes(1, byteorder="big")
+        log.debug(f"{cmd} {target_address} {parameter.value} {motor_number} {value}")
+        binary_msg = bytearray([target_address, cmd.value, parameter.value, motor_number])
+        binary_msg += value.to_bytes(4, byteorder="big", signed=True)
+        checksum = (sum(binary_msg)%256).to_bytes(1, byteorder="big")
         binary_msg += checksum
         return binary_msg
-    
+
     @classmethod
     def rotate_right_motor(self, value: int) -> bytearray:
         """
-        The motor will be instructed to rotate with a specified velocity in right direction (increasing the position counter). 
+        The motor will be instructed to rotate with a specified velocity in right direction (increasing the position counter).
 
         Args:
             motor_number (int): The motor number.
@@ -79,6 +136,7 @@ class TMCL:
             bytearray: The encoded message.
         """
         return self._encode(TMCLCommands.ROTATE_RIGHT, value=value)
+
     @classmethod
     def rotate_left_motor(self, value: int) -> bytearray:
         """
@@ -92,6 +150,7 @@ class TMCL:
             bytearray: The encoded message.
         """
         return self._encode(TMCLCommands.ROTATE_LEFT, value=value)
+
     @classmethod
     def stop_motor_movement(self) -> bytearray:
         """
@@ -104,8 +163,9 @@ class TMCL:
             bytearray: The encoded message.
         """
         return self._encode(TMCLCommands.STOP_MOTOR_MOVEMENT)
+
     @classmethod
-    def move_to_position(self, parameter: int, value: int) -> bytearray:
+    def move_to_position(self, parameter: MotorMovement, value: int) -> bytearray:
         """
         The motor will be instructed to move to a specified relative or absolute position or a
         pre-programmed coordinate. It will use the acceleration/deceleration ramp and the positioning speed
@@ -114,14 +174,16 @@ class TMCL:
         waiting for the motor reaching its end position.
 
         Args:
-            parameter (int): The parameter to use. Use 0 for absolute position and 1 for relative position.
+            parameter (MotorMovement): The parameter to use. Use MotorMovement.ABSOLUTE for absolute position and MotorMovement.RELATIVE for relative position.
             motor_number (int): The motor number.
             value (int): The position to move to.
 
         Returns:
             bytearray: The encoded message.
         """
-        return self._encode(TMCLCommands.MOVE_TO_POSITION, parameter=parameter, value=value)
+        return self._encode(
+            TMCLCommands.MOVE_TO_POSITION, parameter=parameter, value=value
+        )
 
     @classmethod
     def set_axis_parameter(self, parameter: int, value: int) -> bytearray:
@@ -138,7 +200,10 @@ class TMCL:
         Returns:
             bytearray: The encoded message.
         """
-        return self._encode(TMCLCommands.SET_AXIS_PARAMETER, parameter=parameter, value=value)
+        return self._encode(
+            TMCLCommands.SET_AXIS_PARAMETER, parameter=parameter, value=value
+        )
+
     @classmethod
     def get_axis_parameter(self, parameter: int) -> bytearray:
         """
@@ -152,6 +217,7 @@ class TMCL:
             bytearray: The encoded message.
         """
         return self._encode(TMCLCommands.GET_AXIS_PARAMETER, parameter=parameter)
+
     @classmethod
     def store_axis_parameter(self, parameter: int) -> bytearray:
         """
@@ -165,6 +231,7 @@ class TMCL:
             bytearray: The encoded message.
         """
         return self._encode(TMCLCommands.STORE_AXIS_PARAMETER, parameter=parameter)
+
     @classmethod
     def restore_axis_parameter(self, parameter: int) -> bytearray:
         """
@@ -179,4 +246,33 @@ class TMCL:
         """
         return self._encode(TMCLCommands.RESTORE_AXIS_PARAMETER, parameter=parameter)
 
+    @classmethod
+    def decode_reply(self, reply: bytes):
+        """
+        Decodes the reply from the motor and puts it into a list where each element represents one byte.
 
+        Args:
+            reply (bytes): The raw reply from the motor.
+            debug (bool, optional): Enables debugging information. Defaults to False.
+
+        Returns:
+            tuple: A tuple containing the decoded reply as a list and the integer value of the hex value.
+        """
+        dec_reply = list(reply)
+
+        hex_value = ''.join([f'{byte:02x}' for byte in dec_reply[4:8]])
+
+        int_value = int(hex_value, 16)
+        checksum = dec_reply[8]
+        status = StatusCodes(dec_reply[2])
+
+        if 1 <= status.value <= 6:
+            log.warning(f"Error status received: {status}")
+
+        log.debug('\n----- Reply ----------------------------------------\n'
+                f'Value, hex:\t{int_value}, {hex_value}\n'
+                f'Cecksum, hex:\t{checksum}, {hex(checksum)}\n'
+                f'Reply:\t\t{dec_reply}\n'
+                f'Status:\t\t{status}\n')
+
+        return int_value

@@ -1,14 +1,15 @@
 import logging
 from multiprocessing.pool import ThreadPool
-from PDx_110_42_motor import Motor
+from motor_controller import Motor
 
 log = logging.getLogger(__name__)
+
 
 class ScannerControl:
 
     def __init__(self):
         self.motors = {}
-
+        self.dist_per_rots=[1.9983, 1.9983, 1.9959] # measured by Raffi
     def connect(self, ports: list, baudrate=9600) -> None:
         """
         Connect to each motor on the provided ports with the specified baudrate.
@@ -17,9 +18,9 @@ class ScannerControl:
             ports (list): A list of ports to connect to the motors.
             baudrate (int, optional): Baudrate for the serial connection. Defaults to 9600.
         """
-        for i, port in enumerate(ports):
-            self.motors[i] = Motor(port, i, baudrate)
-        
+        for i, (port, dist_per_rot) in enumerate(zip(ports, self.dist_per_rots)):
+            self.motors[i] = Motor(port, i, baudrate, dist_per_rot)
+
         with ThreadPool(processes=len(self.motors)) as pool:
             pool.map(lambda motor: motor.connect(), self.motors.values())
 
@@ -50,7 +51,16 @@ class ScannerControl:
         with ThreadPool(processes=len(self.motors)) as pool:
             pool.map(lambda motor: motor.deactivate_stall_guard(), self.motors.values())
 
-    def move_motors_to_position(self, positions: list) -> None:
+    def get_current_position(self)->None:
+        position = []
+        position_mm = []
+        for motor in self.motors.values():
+            pos_mm, pos_step = motor.get_current_position()
+            position.append(pos_step)
+            position_mm.append(pos_mm)
+        return position_mm, position
+
+    def move_to_absolute_position_in_mm(self, positions: list) -> None:
         """
         Move each motor to its respective position in the given list of positions in parallel.
 
@@ -58,8 +68,17 @@ class ScannerControl:
             positions (list): A list of positions for each motor, [pos_motor_0, pos_motor_1, pos_motor_2].
         """
         with ThreadPool(processes=len(self.motors)) as pool:
-            pool.starmap(lambda motor, position: motor.move_to_step(position), zip(self.motors.values(), positions))
+            pool.starmap(lambda motor, position: motor.move_absolute_position_in_mm(position), zip(self.motors.values(), positions))
 
+    def move_relative_distance_in_mm(self, distances: list) -> None:
+        """
+        Move each motor a distance in mm relative to current position
+
+        Args:
+            distances (list): A list of distance for each motor, [dis_motor_0, dis_motor_1, dis_motor_2].
+        """
+        with ThreadPool(processes=len(self.motors)) as pool:
+            pool.starmap(lambda motor, distance: motor.move_relative_distance_in_mm(distance), zip(self.motors.values(), distances))
 
     # I don't know if we will ever use it, but the following two methods allow use to write:
     # "with ScannerControl() as scanner:
