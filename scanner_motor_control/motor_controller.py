@@ -2,7 +2,7 @@ import logging
 import time
 from typing import Tuple
 import serial
-from tmcl_interface import TMCL, TMCLPars, MotorMovement
+from .tmcl_interface import TMCL, TMCLPars, MotorMovement
 
 log = logging.getLogger(__name__)
 

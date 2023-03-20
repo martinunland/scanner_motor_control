@@ -1,6 +1,6 @@
 import logging
 from multiprocessing.pool import ThreadPool
-from motor_controller import Motor
+from .motor_controller import Motor
 
 log = logging.getLogger(__name__)
 
