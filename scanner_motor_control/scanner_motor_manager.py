@@ -8,8 +8,8 @@ log = logging.getLogger(__name__)
 class ScannerControl:
     def __init__(self):
         self.motors = {}
-        self.dist_per_rots = [1.9983, 1.9983, 1.9959]  # measured by Raffi
-
+        self.DIST_PER_ROTS = [1.9983, 1.9983, 1.9959]  # measured by Raffi
+        self.MAX_STEPs = [1303641, 1425174, 1342922] #maximal microstep of each axis
     def connect(self, ports: list, baudrate=9600) -> None:
         """
         Connect to each motor on the provided ports with the specified baudrate.
@@ -18,8 +18,8 @@ class ScannerControl:
             ports (list): A list of ports to connect to the motors.
             baudrate (int, optional): Baudrate for the serial connection. Defaults to 9600.
         """
-        for i, (port, dist_per_rot) in enumerate(zip(ports, self.dist_per_rots)):
-            self.motors[i] = Motor(port, i, baudrate, dist_per_rot)
+        for i, (port, dist_per_rot, max_step) in enumerate(zip(ports, self.DIST_PER_ROTS, self.MAX_STEPs)):
+            self.motors[i] = Motor(port, i, baudrate, dist_per_rot, max_step)
 
         with ThreadPool(processes=len(self.motors)) as pool:
             pool.map(lambda motor: motor.connect(), self.motors.values())
@@ -45,7 +45,7 @@ class ScannerControl:
                 ),
                 self.motors.values(),
             )
-
+        self.deactivate_stall_guard()
     def find_reference_position(self) -> None:
         with ThreadPool(processes=len(self.motors)) as pool:
             pool.map(
