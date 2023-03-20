@@ -18,7 +18,7 @@ class Motor:
         self.dist_per_rot = dist_per_rot
         self.STALL_THRESHOLD = 3
         self.DECAY_THRESHOLD = 2048
-
+        self.MAX_FREEZE_TIME = 10
     def connect(self) -> None:
         if self._serial is not None and self._serial.isOpen():
             log.info(
@@ -109,7 +109,7 @@ class Motor:
         self._set_and_store(TMCLPars.STALL_DETECTION_THRESHOLD, 0)
 
     def _check_if_finished_moving(self) -> None:
-        MAX_FREEZE_TIME = 10
+        
         position_old = self._get_parameter(TMCLPars.ACTUAL_POSITION_MICROSTEPS)
         last_move_time = time.time()
         while self._get_parameter(TMCLPars.TARGET_POSITION_REACHED) == 0:
@@ -117,9 +117,9 @@ class Motor:
             new_position = self._get_parameter(TMCLPars.ACTUAL_POSITION_MICROSTEPS)
             if new_position != position_old:
                 last_move_time = time.time()
-            elif time.time() - last_move_time > MAX_FREEZE_TIME:
+            elif time.time() - last_move_time > self.MAX_FREEZE_TIME:
                 log.error(
-                    f"Motor {self.motor_number} cannot move from position {position_old} over {MAX_FREEZE_TIME} seconds, exiting..."
+                    f"Motor {self.motor_number} cannot move from position {position_old} over {self.MAX_FREEZE_TIME} seconds, exiting..."
                 )
                 exit()
 
