@@ -1,5 +1,6 @@
 import logging
 from multiprocessing.pool import ThreadPool
+from typing import List
 from .motor_controller import Motor
 
 log = logging.getLogger(__name__)
@@ -95,6 +96,12 @@ class ScannerControl:
                 zip(self.motors.values(), distances),
             )
 
+    def check_position_in_mm_valid(self, positions: list, relative: bool = False) -> List[bool]:
+        valid = []
+        for motor, position in zip(self.motors.values(), positions):
+            bl, _ = motor.check_if_position_in_mm_allowed(position)
+            valid.append(bl)
+        return valid
     # I don't know if we will ever use it, but the following two methods allow use to write:
     # "with ScannerControl() as scanner:
     #   scanner.connect(ports, baudrate)
