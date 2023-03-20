@@ -115,7 +115,6 @@ class TMCL:
         Returns:
             bytearray: The encoded message.
         """
-        log.debug(f"{cmd} {target_address} {parameter.value} {motor_number} {value}")
         binary_msg = bytearray([target_address, cmd.value, parameter.value, motor_number])
         binary_msg += value.to_bytes(4, byteorder="big", signed=True)
         checksum = (sum(binary_msg)%256).to_bytes(1, byteorder="big")
@@ -246,7 +245,7 @@ class TMCL:
         return self._encode(TMCLCommands.RESTORE_AXIS_PARAMETER, parameter=parameter)
 
     @classmethod
-    def decode_reply(self, reply: bytes):
+    def decode_reply(self, reply: bytes, spam: bool = False):
         """
         Decodes the reply from the motor and puts it into a list where each element represents one byte.
 
@@ -267,11 +266,11 @@ class TMCL:
 
         if 1 <= status.value <= 6:
             log.warning(f"Error status received: {status}")
-
-        log.debug('\n----- Reply ----------------------------------------\n'
-                f'Value, hex:\t{int_value}, {hex_value}\n'
-                f'Cecksum, hex:\t{checksum}, {hex(checksum)}\n'
-                f'Reply:\t\t{dec_reply}\n'
-                f'Status:\t\t{status}\n')
+        if spam:
+            log.debug('\n----- Reply ----------------------------------------\n'
+                    f'Value, hex:\t{int_value}, {hex_value}\n'
+                    f'Cecksum, hex:\t{checksum}, {hex(checksum)}\n'
+                    f'Reply:\t\t{dec_reply}\n'
+                    f'Status:\t\t{status}\n')
 
         return int_value

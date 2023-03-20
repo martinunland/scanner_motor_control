@@ -6,10 +6,10 @@ log = logging.getLogger(__name__)
 
 
 class ScannerControl:
-
     def __init__(self):
         self.motors = {}
-        self.dist_per_rots=[1.9983, 1.9983, 1.9959] # measured by Raffi
+        self.dist_per_rots = [1.9983, 1.9983, 1.9959]  # measured by Raffi
+
     def connect(self, ports: list, baudrate=9600) -> None:
         """
         Connect to each motor on the provided ports with the specified baudrate.
@@ -28,7 +28,7 @@ class ScannerControl:
         with ThreadPool(processes=len(self.motors)) as pool:
             pool.map(lambda motor: motor.disconnect(), self.motors.values())
 
-    def set_motors_speed(self, max_speed: int = 5000, max_acceleration: int = 1500):
+    def configure_motors(self, max_speed: int = 5000, max_acceleration: int = 1500):
         """
         Set the maximum speed and acceleration for all motors.
 
@@ -36,12 +36,19 @@ class ScannerControl:
             max_speed (int, optional): Maximum speed for the motors. Defaults to 5000.
             max_acceleration (int, optional): Maximum acceleration for the motors. Defaults to 1500.
         """
-        for motor in self.motors.values():
-            motor.set_speed_and_acceleration(max_speed=max_speed, max_acceleration=max_acceleration)
+        with ThreadPool(processes=len(self.motors)) as pool:
+            pool.map(
+                lambda motor: motor.set_speed_and_acceleration(
+                    max_speed=max_speed, max_acceleration=max_acceleration
+                ),
+                self.motors.values(),
+            )
 
     def find_reference_position(self):
         with ThreadPool(processes=len(self.motors)) as pool:
-            pool.map(lambda motor: motor.search_reference_position(), self.motors.values())
+            pool.map(
+                lambda motor: motor.search_reference_position(), self.motors.values()
+            )
 
     def activate_stall_guard(self):
         with ThreadPool(processes=len(self.motors)) as pool:
@@ -51,7 +58,7 @@ class ScannerControl:
         with ThreadPool(processes=len(self.motors)) as pool:
             pool.map(lambda motor: motor.deactivate_stall_guard(), self.motors.values())
 
-    def get_current_position(self)->None:
+    def get_current_position(self) -> None:
         position = []
         position_mm = []
         for motor in self.motors.values():
@@ -68,7 +75,10 @@ class ScannerControl:
             positions (list): A list of positions for each motor, [pos_motor_0, pos_motor_1, pos_motor_2].
         """
         with ThreadPool(processes=len(self.motors)) as pool:
-            pool.starmap(lambda motor, position: motor.move_absolute_position_in_mm(position), zip(self.motors.values(), positions))
+            pool.starmap(
+                lambda motor, position: motor.move_absolute_position_in_mm(position),
+                zip(self.motors.values(), positions),
+            )
 
     def move_relative_distance_in_mm(self, distances: list) -> None:
         """
@@ -78,7 +88,10 @@ class ScannerControl:
             distances (list): A list of distance for each motor, [dis_motor_0, dis_motor_1, dis_motor_2].
         """
         with ThreadPool(processes=len(self.motors)) as pool:
-            pool.starmap(lambda motor, distance: motor.move_relative_distance_in_mm(distance), zip(self.motors.values(), distances))
+            pool.starmap(
+                lambda motor, distance: motor.move_relative_distance_in_mm(distance),
+                zip(self.motors.values(), distances),
+            )
 
     # I don't know if we will ever use it, but the following two methods allow use to write:
     # "with ScannerControl() as scanner:

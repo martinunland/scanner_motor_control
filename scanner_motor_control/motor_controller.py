@@ -1,5 +1,6 @@
 import logging
 import time
+from typing import Tuple
 import serial
 from tmcl_interface import TMCL, TMCLPars, MotorMovement
 
@@ -51,14 +52,14 @@ class Motor:
             )
             raise
 
-    def _microsteps_to_distance(self, position: int) -> float:
+    def _microsteps_to_mm(self, position: int) -> float:
         micsteps_per_rot = 200 * (
             2 ** self._get_parameter(TMCLPars.MICROSTEP_RESOLUTION)
         )
         distance = position * self.dist_per_rot / micsteps_per_rot
         return distance
 
-    def _distance_to_microsteps(self, distance: float) -> int:
+    def _mm_to_microsteps(self, distance: float) -> int:
         micsteps_per_rot = 200 * (
             2 ** self._get_parameter(TMCLPars.MICROSTEP_RESOLUTION)
         )
@@ -141,7 +142,7 @@ class Motor:
             distance_mm (float): The distance in mm to move the motor.
         """
         self.move_in_step(
-            self._distance_to_microsteps(distance_mm), mode=MotorMovement.RELATIVE
+            self._mm_to_microsteps(distance_mm), mode=MotorMovement.RELATIVE
         )
 
     def move_absolute_position_in_mm(self, position_mm: float) -> None:
@@ -152,10 +153,10 @@ class Motor:
             position_mm (float): The target position in mm.
         """
         self.move_in_step(
-            self._distance_to_microsteps(position_mm), mode=MotorMovement.ABSOLUTE
+            self._mm_to_microsteps(position_mm), mode=MotorMovement.ABSOLUTE
         )
 
-    def get_current_position(self) -> tuple[float, int]:
+    def get_current_position(self) -> Tuple[float, int]:
         """
         Get the current position of the motor in both millimeters and microsteps.
 
@@ -164,7 +165,7 @@ class Motor:
                            the current position in microsteps (int).
         """
         steps = self._get_parameter(TMCLPars.ACTUAL_POSITION_MICROSTEPS)
-        return self._microsteps_to_distance(steps), steps
+        return self._microsteps_to_mm(steps), steps
 
     def search_reference_position(self) -> None:
         # activate stall guard if not active
