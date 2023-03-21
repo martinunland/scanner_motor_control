@@ -34,7 +34,7 @@ To use the library, you need to first create an instance of the ScannerControl c
 Here's a simple example:
 
 ```python
-from scanner_motor_manager import ScannerControl
+from scanner_motor_control import ScannerControl
 
 # Create an instance of the ScannerControl class
 scanner = ScannerControl()
@@ -66,7 +66,7 @@ with ScannerControl() as scanner:
     scanner.move_relative_distance_in_mm([-15, -15, -15])
     print(scanner.get_current_position())
 ```
-In this case, the motors are automatically disconnected if an exception occurs.
+In this case, the motors are automatically disconnected if an exception occurs or if the with block is finished.
 
 If you request a position outside the available volume, an exception will be risen. You can check the position as follows:
 ```python
