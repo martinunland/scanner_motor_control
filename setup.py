@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='scanner_motor_control',  # Replace with your desired library name
-    version='0.2.0',
+    version='0.2.1',
     description='A library for controlling the 3D scanner',
     author='Martin Unland | Raffaela Busse',  
     author_email='martin.e@unland.eu',  
