@@ -44,16 +44,14 @@ class Motor:
         Test the connection to the motor by sending a stop command and checking for a reply.
         """
         try:
-            self._serial.write(TMCL.stop_motor_movement())
-            self._serial.read(9)
+            self._write_to_serial(TMCL.stop_motor_movement())
             log.info(
                 f"Successfully connected to motor {self.motor_number} on port {self._serial.port}"
             )
-        except serial.SerialException as err:
-            log.error(
-                f"Failed to connect to motor {self.motor_number} on port {self._serial.port}: {err}"
-            )
-            raise
+        except Exception as err:
+            mssg = f"Failed to connect to motor {self.motor_number} on port {self._serial.port} with error: '{err}'. \n\t   ValueError starting with 'invalid literal ...' probably means that you have not started the motor :)"
+            log.error(mssg)
+            raise Exception(mssg)
 
     def _microsteps_to_mm(self, position: int) -> float:
         micsteps_per_rot = 200*(2 ** self.SET_MICROSTEP_RESO)
